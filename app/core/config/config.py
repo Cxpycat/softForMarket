@@ -39,7 +39,7 @@ class Config(BaseModel):
 def _load_yaml(path: Path) -> dict:
     if not path.exists():
         raise FileNotFoundError(f"Конфигурационный файл {path} не найден")
-    with path.open("r") as f:
+    with path.open("r", encoding="utf-8") as f:
         return yaml.full_load(f) or {}
 
 
