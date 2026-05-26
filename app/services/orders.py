@@ -17,7 +17,7 @@ from app.services.links import INVALID_TG_LINK_MSG, extract_days_and_link, norma
 
 
 def status_url(code: str) -> str:
-    return f"{settings.BASE_PUBLIC_URL}{settings.API_V1_STR}/status?code={code}"
+    return f"{settings.BASE_PUBLIC_URL}/status?code={code}"
 
 
 async def _notify(session: AsyncSession, text: str, *, silent: bool = False, dedupe: tuple[str, str] | None = None) -> None:

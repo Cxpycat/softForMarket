@@ -23,7 +23,7 @@ def _track(task: asyncio.Task) -> None:
 
 
 def _status_url(code: str) -> str:
-    return f"{settings.BASE_PUBLIC_URL}{settings.API_V1_STR}/status?code={code}"
+    return f"{settings.BASE_PUBLIC_URL}/status?code={code}"
 
 
 def _is_status_ok(status_obj: Any) -> bool:

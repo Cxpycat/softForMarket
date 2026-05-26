@@ -6,7 +6,6 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 class Settings(BaseSettings):
     PROJECT_NAME: str
-    API_V1_STR: str
 
     # Server Config
     SERVER_HOST: str

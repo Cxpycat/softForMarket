@@ -1,8 +1,6 @@
 from fastapi import APIRouter
 from fastapi.responses import PlainTextResponse
 
-from app.core.config.settings import settings
-
 router = APIRouter()
 
 
@@ -13,10 +11,9 @@ async def health() -> bool:
 
 @router.get("/", response_class=PlainTextResponse)
 async def index() -> str:
-    base = settings.API_V1_STR
     return (
         "softForMarket — GGSEL & Digiseller → Telegram + TeaTeaGram\n"
-        f"{base}/status?code={{uuid}}              — статус заказа\n"
-        f"{base}/ggsel?uniquecode={{uuid}}         — GGSEL callback\n"
-        f"{base}/digiseller-callback?uniquecode={{uuid}} — PLATI callback\n"
+        "/status?code={uuid}              — статус заказа\n"
+        "/ggsel?uniquecode={uuid}         — GGSEL callback\n"
+        "/digiseller-callback?uniquecode={uuid} — PLATI callback\n"
     )
