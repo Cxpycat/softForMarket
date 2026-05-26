@@ -1,15 +1,15 @@
 @echo off
-REM Запуск фонового worker (поллер чатов GGSEL). Ровно один экземпляр.
+REM Start the background worker (GGSEL chat poller). Exactly one instance.
 setlocal
 cd /d "%~dp0.."
 
 if not exist ".venv\Scripts\python.exe" (
-    echo [worker] Нет .venv. Сначала запусти scripts\setup.bat
+    echo [worker] No .venv found. Run scripts\setup.bat first.
     pause
     exit /b 1
 )
 
-echo [worker] Запуск app.worker ...
+echo [worker] Starting app.worker ...
 call ".venv\Scripts\python.exe" -m app.worker
 
 pause

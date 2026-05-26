@@ -1,15 +1,15 @@
 @echo off
-REM Запуск web (uvicorn). Хост и порт берутся из .env (SERVER_HOST / SERVER_PORT).
+REM Start web (uvicorn). Host and port are read from .env (SERVER_HOST / SERVER_PORT).
 setlocal enabledelayedexpansion
 cd /d "%~dp0.."
 
 if not exist ".venv\Scripts\python.exe" (
-    echo [web] Нет .venv. Сначала запусти scripts\setup.bat
+    echo [web] No .venv found. Run scripts\setup.bat first.
     pause
     exit /b 1
 )
 
-REM --- читаем SERVER_HOST и SERVER_PORT из .env (строки вида KEY=VALUE) ---
+REM --- read SERVER_HOST and SERVER_PORT from .env (lines like KEY=VALUE) ---
 set "HOST="
 set "PORT="
 for /f "usebackq tokens=1,* delims==" %%A in (".env") do (
@@ -18,12 +18,12 @@ for /f "usebackq tokens=1,* delims==" %%A in (".env") do (
 )
 if not defined HOST set "HOST=127.0.0.1"
 if not defined PORT set "PORT=8000"
-REM срезаем случайные пробелы по краям значений
+REM trim stray spaces around the values
 set "HOST=%HOST: =%"
 set "PORT=%PORT: =%"
 
-echo [web] Запуск uvicorn на %HOST%:%PORT% ...
+echo [web] Starting uvicorn on %HOST%:%PORT% ...
 call ".venv\Scripts\python.exe" -m uvicorn app.main:app --host %HOST% --port %PORT%
 
-REM если uvicorn упал — не закрывать окно мгновенно
+REM if uvicorn crashed, do not close the window immediately
 pause
