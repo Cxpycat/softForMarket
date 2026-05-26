@@ -1,0 +1,223 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+/.claude/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Frontend build
+/frontend/dist/
+/frontend/build/
+
+# Vite
+.vite-cache/
+
+# IDE
+.idea/
+.vscode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+# *.code-workspace
+.history/
+
+# Logs
+logs
+*.log
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.development
+.env.test
+.env.production
+env
+
+setup_env.sh
+pyproject copy.toml
+*strict.*
+pythonpath.pth
+UNKNOWN.egg-info/
+pyrightconfig.json
+.DS_Store
+app.zip
+app.2025-*
+
+
+/backend/static
+backend/app/storage
+backend/telegram_section
+backend/archives
+backend/cron_state.db
+backend/temp
+frontend/Makefile
+backend/test_api.py
+backend/pyrightconfig copy.json
+
+boost_services.yaml
+config.yaml
+check.sh
+test/
+audit.yaml
+/backend/telegram_toolkit
+/backend/data
+/backend/storage
+/backend/Darchives
+/backend/config/telegram_toolkit.yaml
+
+/certs/
+package-lock.json
+tmp/
+docker-compose.override.yml
+backend/Dockerfile.dev
+/backend/config/templates/checker.yaml
+/backend/config/templates/cleaner.yaml
+/backend/config/templates/default.yaml
+/backend/config/templates/follower.yaml
+telegram1.42-service/Dockerfile.dev
+/claude-memory-compiler/
+/config/services.yaml
+
+# Local SQLite DB (created by alembic upgrade)
+purchases.db
+purchases.db-wal
+purchases.db-shm
+/docs
+/Digiseller
+/ggSell

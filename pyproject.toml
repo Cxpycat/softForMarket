@@ -1,0 +1,185 @@
+[tool.ruff]
+line-length = 128
+target-version = "py311"
+extend-exclude = [
+    ".venv",
+    "alembic/versions",
+    "logs",
+    "static",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = true
+
+[tool.ruff.lint]
+# Строгий набор правил. Группы:
+#   E,W   — pycodestyle (PEP 8)
+#   F     — pyflakes (неиспользуемые импорты/переменные, undefined names)
+#   I     — isort (порядок импортов)
+#   B     — flake8-bugbear (распространённые баги: mutable defaults, B008 и т.д.)
+#   C4    — flake8-comprehensions (упрощения list/dict/set comprehensions)
+#   UP    — pyupgrade (современный Python-синтаксис под target-version)
+#   SIM   — flake8-simplify
+#   N     — pep8-naming (имена классов/функций/переменных)
+#   ASYNC — flake8-async (правильное использование async/await)
+#   S     — flake8-bandit (безопасность)
+#   A     — flake8-builtins (затенение builtins)
+#   RET   — flake8-return (упрощения return)
+#   RUF   — ruff-specific
+#   PL    — pylint (подмножество)
+#   PERF  — perflint (производительность)
+select = [
+    "E", "W", "F", "I", "B", "C4", "UP", "SIM", "N",
+    "ASYNC", "S", "A", "RET", "RUF", "PL", "PERF",
+]
+
+ignore = [
+    # FastAPI Depends/Query/Path как аргументы по умолчанию
+    "B008",
+    # Длинные строки оставляем форматтеру
+    "E501",
+    # Pylint-ограничения на число аргументов/ветвлений/локальных
+    "PLR0913", "PLR0912", "PLR0915", "PLR0911",
+    # Магические значения в сравнениях
+    "PLR2004",
+    # Кириллица в строках/docstring/комментариях
+    "RUF001", "RUF002", "RUF003",
+    # Затенение builtins (id, type, filter) в аргументах
+    "A001", "A002",
+    # Manual list comprehension вместо append-loop
+    "PERF401",
+    # Mutable class default
+    "RUF012",
+    # Импорты не сверху файла
+    "E402",
+    # assert вне тестов
+    "S101",
+    # raise ... from внутри except
+    "B904",
+    # token_type="access"/"refresh"
+    "S106",
+    # SQL построен через text() с валидацией колонок и параметризацией :name (false positive)
+    "S608",
+    # Async-функция с параметром timeout
+    "ASYNC109",
+    # Суффикс Error для исключений
+    "N818",
+    # Неиспользуемая loop-переменная
+    "B007",
+    # try/except: pass → contextlib.suppress
+    "SIM105",
+    # Вложенные `async with session_factory() / session.begin()`
+    "SIM117",
+    # global для lazy singleton
+    "PLW0603",
+    # asyncio.create_task без сохранения ссылки
+    "RUF006",
+    "E712",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Тесты: разрешаем assert, hardcoded passwords, плохие имена test_-функций
+"tests/**/*.py" = ["S101", "S105", "S106", "S107", "PLR2004", "N802", "N803"]
+# Alembic-миграции автогенерируются — не лезем
+"alembic/versions/**/*.py" = ["E", "W", "F", "I", "B", "UP", "N", "RUF"]
+# __init__.py: re-export допустим
+"**/__init__.py" = ["F401", "F403"]
+# Конфиги/настройки часто имеют поля в верхнем регистре под env-переменные
+"app/core/config/**/*.py" = ["N815"]
+# Pydantic-схемы DTO: имена полей соответствуют контракту внешнего API (camelCase)
+"app/schemas/**/*.py" = ["N815"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+combine-as-imports = true
+force-sort-within-sections = true
+split-on-trailing-comma = true
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-base-classes = [
+    "pydantic.BaseModel",
+    "pydantic_settings.BaseSettings",
+    "sqlalchemy.orm.DeclarativeBase",
+]
+
+[tool.ruff.lint.pep8-naming]
+classmethod-decorators = ["pydantic.validator", "pydantic.field_validator", "classmethod"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "$MYPY_CONFIG_FILE_DIR"
+plugins = ["pydantic.mypy"]
+namespace_packages = true
+explicit_package_bases = true
+
+# === L1: базовая строгость, без disallow_untyped_calls/disallow_any_generics ===
+# Запрещаем нетипизированные определения и неполные сигнатуры
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+# Optional только явный (Union[X, None] / X | None)
+no_implicit_optional = true
+strict_optional = true
+# Предупреждения, которые ловят реальные баги
+warn_return_any = true
+warn_unused_configs = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unreachable = true
+warn_no_return = true
+# Дополнительные проверки совместимости override-ов и сравнений разных типов
+extra_checks = true
+strict_equality = true
+# Показывать коды ошибок — нужно для точечных # type: ignore[code]
+show_error_codes = true
+show_column_numbers = true
+pretty = true
+
+# === Сторонние библиотеки без типов ===
+[[tool.mypy.overrides]]
+module = [
+    "uvicorn.*",
+    "sqlalchemy.*",
+    "passlib.*",
+    "jose.*",
+    "redis.*",
+    "tenacity.*",
+    "loguru.*",
+    "fastapi_limiter.*",
+    "httpx.*",
+    "pytest.*",
+    "aiosqlite.*",
+    "fastapi_crons.*",
+    "aiofiles.*",
+    "pytz.*",
+    "yaml.*",
+    "socks.*",
+    "infisical_sdk.*",
+    "apscheduler.*",
+    "telethon.*",
+    "openpyxl.*",
+    "dateutil.*",
+]
+ignore_missing_imports = true
+
+# === Alembic-миграции: автогенерированный код, не проверяем ===
+[[tool.mypy.overrides]]
+module = ["alembic.*", "alembic.versions.*"]
+ignore_errors = true
+
+# === pydantic.mypy plugin: строгий режим ===
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["."]

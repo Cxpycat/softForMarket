@@ -1,0 +1,95 @@
+import json
+from pathlib import Path
+from typing import Any
+
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import PlainTextResponse, Response
+from fastapi.templating import Jinja2Templates
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.clients.telegram.formatting import footer_for_platform, supplier_canceled
+from app.core.config.config import config
+from app.db import repository as repo
+from app.db.session import get_session
+from app.services.links import INVALID_TG_LINK_MSG
+
+router = APIRouter()
+_templates = Jinja2Templates(directory=str(Path(__file__).resolve().parents[3] / "templates"))
+
+
+def _safe_json(s: Any) -> Any:
+    if not s:
+        return None
+    if isinstance(s, dict | list):
+        return s
+    try:
+        return json.loads(s)
+    except (json.JSONDecodeError, TypeError):
+        return s
+
+
+def _human_status(status_obj: Any) -> tuple[str, int | None]:
+    """Человекочитаемый статус и остаток для клиента."""
+    remains: int | None = None
+    if isinstance(status_obj, dict):
+        for key in ("remains", "remain", "left", "remaining"):
+            if key in status_obj:
+                try:
+                    remains = int(float(str(status_obj[key])))
+                    break
+                except (TypeError, ValueError):
+                    pass
+        st = str(status_obj.get("status", "")).strip().lower()
+        if supplier_canceled(status_obj):
+            return "Заказ был отменён системой! Пожалуйста, свяжитесь с поддержкой.", (remains if remains is not None else 0)
+        if st in {"completed", "done", "success", "finished"}:
+            return "Завершён", 0
+        if st in {"partial"}:
+            return "Частично выполнен", remains
+        if st in {"processing", "in progress", "progress", "working", "pending"}:
+            return "В работе", remains
+        if st:
+            return str(status_obj.get("status", "")).strip(), remains
+    return "В работе", remains
+
+
+@router.get("/status")
+async def status_view(
+    request: Request, code: str = "", uniquecode: str = "", session: AsyncSession = Depends(get_session)
+) -> Response:
+    code = (code or uniquecode).strip()
+    if not code:
+        return PlainTextResponse("Missing code", status_code=400)
+
+    row = await repo.get_by_unique_code(session, code)
+    if not row:
+        return PlainTextResponse("Заказ не найден. Попробуйте позже или обратитесь в поддержку.", status_code=404)
+
+    goods_id = str(row.get("goods_id") or "")
+    ctx: dict[str, Any] = {
+        "goods_name": config.services.goods_human.get(goods_id, goods_id),
+        "days": int(row.get("days") or 0),
+        "quantity": int(row.get("quantity") or 1),
+        "link": row.get("tg_link") or "—",
+        "footer": footer_for_platform(str(row.get("platform") or "")),
+        "remains": "—",
+        "auto_refresh": None,
+        "top_note": None,
+    }
+
+    if str(row.get("status") or "") == "ERROR_INVALID_LINK":
+        ctx |= {"status_line": INVALID_TG_LINK_MSG, "top_note": INVALID_TG_LINK_MSG}
+        return _templates.TemplateResponse(request, "status.html", ctx)
+
+    st_obj = _safe_json(row.get("supplier_status"))
+    if not st_obj and str(row.get("supplier_order_id") or "").strip():
+        ctx |= {
+            "status_line": "Ожидаем запуск заказа...",
+            "auto_refresh": 65,
+            "top_note": "Проверка заказа, подождите 60 секунд. Страница обновится автоматически.",
+        }
+        return _templates.TemplateResponse(request, "status.html", ctx)
+
+    status_line, remains = _human_status(st_obj)
+    ctx |= {"status_line": status_line, "remains": "—" if remains is None else str(remains)}
+    return _templates.TemplateResponse(request, "status.html", ctx)

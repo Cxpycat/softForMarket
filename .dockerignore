@@ -1,0 +1,30 @@
+.git
+.gitignore
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.idea
+*.log
+logs
+*.zip
+.env
+.env.*
+!.env.example
+dist
+build
+
+# Старые Flask-скрипты (переезжают в app/, в образ не нужны)
+Digiseller
+ggSell
+
+# Документация и локальная БД
+docs
+*.db
+*.db-wal
+*.db-shm
