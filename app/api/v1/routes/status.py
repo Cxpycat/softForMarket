@@ -5,8 +5,10 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import PlainTextResponse, Response
 from fastapi.templating import Jinja2Templates
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.clients.suppliers.teateagram import teateagram
 from app.clients.telegram.formatting import footer_for_platform, supplier_canceled
 from app.core.config.config import config
 from app.db import repository as repo
@@ -53,6 +55,15 @@ def _human_status(status_obj: Any) -> tuple[str, int | None]:
     return "В работе", remains
 
 
+def _is_final(status_obj: Any) -> bool:
+    """Заказ завершён или отменён — перепроверять и обновлять страницу больше не нужно."""
+    if supplier_canceled(status_obj):
+        return True
+    if isinstance(status_obj, dict):
+        return str(status_obj.get("status", "")).strip().lower() in {"completed", "done", "success", "finished"}
+    return False
+
+
 @router.get("/status")
 async def status_view(
     request: Request, code: str = "", uniquecode: str = "", session: AsyncSession = Depends(get_session)
@@ -82,14 +93,27 @@ async def status_view(
         return _templates.TemplateResponse(request, "status.html", ctx)
 
     st_obj = _safe_json(row.get("supplier_status"))
-    if not st_obj and str(row.get("supplier_order_id") or "").strip():
+    order_id = str(row.get("supplier_order_id") or "").strip()
+
+    if order_id and not _is_final(st_obj):
+        try:
+            fresh = await teateagram.get_supplier_status(order_id)
+            await repo.update_supplier_by_ucode(session, code, json.dumps(fresh, ensure_ascii=False))
+            st_obj = fresh
+        except Exception as e:
+            logger.warning(f"[STATUS] не удалось обновить статус code={code} order={order_id}: {type(e).__name__}: {e}")
+
+    if not st_obj and order_id:
         ctx |= {
             "status_line": "Ожидаем запуск заказа...",
-            "auto_refresh": 65,
-            "top_note": "Проверка заказа, подождите 60 секунд. Страница обновится автоматически.",
+            "auto_refresh": 30,
+            "top_note": "Проверяем заказ. Страница обновится автоматически.",
         }
         return _templates.TemplateResponse(request, "status.html", ctx)
 
     status_line, remains = _human_status(st_obj)
+    # Не финал → держим авто-обновление, чтобы клиент увидел «Завершён» без перезагрузки.
+    if not _is_final(st_obj):
+        ctx["auto_refresh"] = 30
     ctx |= {"status_line": status_line, "remains": "—" if remains is None else str(remains)}
     return _templates.TemplateResponse(request, "status.html", ctx)
