@@ -50,4 +50,4 @@ class GgselApi(BaseApi):
         return []
 
 
-ggsel = GgselApi(timeout=25.0)
+ggsel = GgselApi()

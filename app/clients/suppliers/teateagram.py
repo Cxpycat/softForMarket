@@ -29,4 +29,4 @@ class TeaTeaGramApi(BaseApi):
         return result
 
 
-teateagram = TeaTeaGramApi(timeout=25.0)
+teateagram = TeaTeaGramApi()

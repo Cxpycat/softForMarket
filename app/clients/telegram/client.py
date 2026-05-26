@@ -29,4 +29,4 @@ class TelegramApi(BaseApi):
             return False
 
 
-telegram = TelegramApi(timeout=25.0, proxy=_proxy())
+telegram = TelegramApi(proxy=_proxy())

@@ -1,23 +1,36 @@
+import asyncio
 from typing import Any, Literal
 
 import httpx
 from loguru import logger
 
-DEFAULT_LIMITS = httpx.Limits(max_connections=100, max_keepalive_connections=20)
+# keep-alive выключен: висящие TLS-соединения на Windows дают ReadTimeout
+DEFAULT_LIMITS = httpx.Limits(max_connections=100, max_keepalive_connections=0)
+DEFAULT_TIMEOUT = httpx.Timeout(connect=5.0, read=20.0, write=20.0, pool=5.0)
+
+RETRY_STATUSES = frozenset({429, 500, 502, 503, 504, 522, 524})
+RETRY_TOTAL = 3
+RETRY_BACKOFF = 0.5
+
+DEFAULT_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; TG-Boost-Orders/1.0)",
+    "Accept": "application/json",
+}
 
 
 class BaseApi:
     def __init__(
         self,
         base_url: str | None = None,
-        timeout: float = 30.0,
+        timeout: float | httpx.Timeout | None = None,
         headers: dict[str, str] | None = None,
         proxy: str | None = None,
     ) -> None:
+        merged_headers = {**DEFAULT_HEADERS, **(headers or {})}
         self._client = httpx.AsyncClient(
             base_url=base_url or "",
-            timeout=timeout,
-            headers=headers or {},
+            timeout=timeout if timeout is not None else DEFAULT_TIMEOUT,
+            headers=merged_headers,
             limits=DEFAULT_LIMITS,
             transport=httpx.AsyncHTTPTransport(retries=3),
             proxy=proxy,
@@ -55,16 +68,34 @@ class BaseApi:
         data: Any | None = None,
         headers: dict[str, str] | None = None,
     ) -> httpx.Response:
-        try:
-            r = await self._client.request(method, url, params=params, json=json_data, data=data, headers=headers)
-            r.raise_for_status()
-            return r
-        except httpx.HTTPStatusError as exc:
-            logger.error(
-                f"Сервис вернул ошибку: {method} {exc.request.url} -> {exc.response.status_code} {exc.response.text[:200]}"
-            )
-            raise
-        except httpx.RequestError as exc:
-            cause = f" ({exc.__cause__!r})" if exc.__cause__ is not None else ""
-            logger.error(f"Ошибка сетевого запроса: {method} {url} -> {type(exc).__name__}: {exc}{cause}")
-            raise
+        last_response: httpx.Response | None = None
+        for attempt in range(RETRY_TOTAL + 1):
+            try:
+                r = await self._client.request(method, url, params=params, json=json_data, data=data, headers=headers)
+                if r.status_code in RETRY_STATUSES and attempt < RETRY_TOTAL:
+                    last_response = r
+                    await asyncio.sleep(RETRY_BACKOFF * (2**attempt))
+                    continue
+                r.raise_for_status()
+                return r
+            except httpx.HTTPStatusError as exc:
+                logger.error(
+                    f"Сервис вернул ошибку: {method} {exc.request.url} -> "
+                    f"{exc.response.status_code} {exc.response.text[:200]}"
+                )
+                raise
+            except (httpx.TransportError, httpx.TimeoutException) as exc:
+                if attempt < RETRY_TOTAL:
+                    await asyncio.sleep(RETRY_BACKOFF * (2**attempt))
+                    continue
+                cause = f" ({exc.__cause__!r})" if exc.__cause__ is not None else ""
+                logger.error(f"Ошибка сетевого запроса: {method} {url} -> {type(exc).__name__}: {exc}{cause}")
+                raise
+
+        assert last_response is not None
+        logger.error(
+            f"Сервис вернул ошибку после {RETRY_TOTAL} ретраев: {method} {url} -> "
+            f"{last_response.status_code} {last_response.text[:200]}"
+        )
+        last_response.raise_for_status()
+        return last_response

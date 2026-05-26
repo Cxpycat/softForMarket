@@ -87,4 +87,4 @@ class DigisellerApi(BaseApi):
         return result
 
 
-digiseller = DigisellerApi(timeout=25.0)
+digiseller = DigisellerApi()
