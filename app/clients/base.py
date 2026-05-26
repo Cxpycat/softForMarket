@@ -65,5 +65,6 @@ class BaseApi:
             )
             raise
         except httpx.RequestError as exc:
-            logger.error(f"Ошибка сетевого запроса: {method} {url} -> {exc}")
+            cause = f" ({exc.__cause__!r})" if exc.__cause__ is not None else ""
+            logger.error(f"Ошибка сетевого запроса: {method} {url} -> {type(exc).__name__}: {exc}{cause}")
             raise

@@ -142,7 +142,7 @@ async def _poll_once() -> None:
                 try:
                     await _process_chat(session, token, chat)
                 except Exception as e:
-                    logger.warning(f"[GGSEL-CHAT] ошибка чата: {e}")
+                    logger.warning(f"[GGSEL-CHAT] ошибка чата: {type(e).__name__}: {e}")
         try:
             total = int(data.get("cnt_pages") or 1)
         except (TypeError, ValueError):
