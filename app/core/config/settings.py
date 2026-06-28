@@ -53,10 +53,10 @@ class Settings(BaseSettings):
     STATUS_CHECK_DELAY_SECONDS: int
     # При первой встрече чата: True — проглотить историю без форварда, False — переслать (с лимитом ниже)
     GGSEL_CHAT_BOOTSTRAP_SILENT: bool
-    # Лимит форварда непрочитанной истории при первой встрече чата (защита от флуда)
-    GGSEL_CHAT_FIRST_SEEN_MAX: int
     # Сколько страниц списка чатов опрашивать за цикл
     GGSEL_CHAT_MAX_PAGES: int
+    # Свежесть чата: тянем сообщения только если last_message не старше стольких дней
+    GGSEL_CHAT_FRESH_DAYS: int
 
     # База данных (PostgreSQL через asyncpg)
     POSTGRES_HOST: str

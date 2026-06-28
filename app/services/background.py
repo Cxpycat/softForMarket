@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC, datetime, timedelta
 import json
 from typing import Any
 
@@ -129,27 +130,35 @@ def _extract_chat_id(chat: dict[str, Any]) -> int | None:
     return None
 
 
+def _is_chat_fresh(chat: dict[str, Any]) -> bool:
+    raw = chat.get("last_message")
+    if not raw:
+        return False
+    try:
+        last = datetime.fromisoformat(str(raw))
+    except ValueError:
+        return False
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=UTC)
+    threshold = datetime.now(UTC) - timedelta(days=settings.GGSEL_CHAT_FRESH_DAYS)
+    return last >= threshold
+
+
 async def _poll_once() -> None:
     token = await ggsel.get_token()
-    page = 1
-    while True:
+    for page in range(1, settings.GGSEL_CHAT_MAX_PAGES + 1):
         data = await ggsel.get_chats(token, filter_new=0, page=page)
         items = data.get("items") or []
         if not items:
             break
         async with async_session() as session:
             for chat in items:
+                if not _is_chat_fresh(chat):
+                    continue
                 try:
                     await _process_chat(session, token, chat)
                 except Exception as e:
                     logger.warning(f"[GGSEL-CHAT] ошибка чата: {type(e).__name__}: {e}")
-        try:
-            total = int(data.get("cnt_pages") or 1)
-        except (TypeError, ValueError):
-            total = 1
-        if page >= total or page >= settings.GGSEL_CHAT_MAX_PAGES:
-            break
-        page += 1
 
 
 async def _process_chat(session: AsyncSession, token: str, chat: dict[str, Any]) -> None:
@@ -177,14 +186,11 @@ async def _process_chat(session: AsyncSession, token: str, chat: dict[str, Any])
         if int(m.get("buyer") or 0) == 1 and not int(m.get("deleted") or 0):
             to_send.append((mid, m))
 
-    # При первой встрече чата: либо проглатываем историю без форварда (bootstrap silent),
-    # либо пересылаем, но не больше лимита — чтобы не залить TG историей.
+    # При первой встрече чата с bootstrap silent проглатываем историю без форварда.
     if first_seen and settings.GGSEL_CHAT_BOOTSTRAP_SILENT:
         await repo.ggsel_chat_set_last_msg_id(session, chat_id, max_seen)
         logger.info(f"[GGSEL-CHAT] bootstrap chat_id={chat_id} last_msg_id={max_seen} (пропущено {len(to_send)} сообщений)")
         return
-    if first_seen and len(to_send) > settings.GGSEL_CHAT_FIRST_SEEN_MAX:
-        to_send = to_send[-settings.GGSEL_CHAT_FIRST_SEEN_MAX :]
 
     email = chat.get("email") or chat.get("buyer_email") or "—"
     first_failed: int | None = None
