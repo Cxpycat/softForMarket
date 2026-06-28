@@ -133,7 +133,7 @@ async def _poll_once() -> None:
     token = await ggsel.get_token()
     page = 1
     while True:
-        data = await ggsel.get_chats(token, filter_new=1, page=page)
+        data = await ggsel.get_chats(token, filter_new=0, page=page)
         items = data.get("items") or []
         if not items:
             break
@@ -147,7 +147,7 @@ async def _poll_once() -> None:
             total = int(data.get("cnt_pages") or 1)
         except (TypeError, ValueError):
             total = 1
-        if page >= total:
+        if page >= total or page >= settings.GGSEL_CHAT_MAX_PAGES:
             break
         page += 1
 
@@ -166,6 +166,7 @@ async def _process_chat(session: AsyncSession, token: str, chat: dict[str, Any])
         return
 
     msgs_sorted = sorted((m for m in msgs if m.get("id") is not None), key=lambda m: int(m.get("id") or 0))
+
     max_seen = last_id or 0
     to_send: list[tuple[int, dict]] = []
     for m in msgs_sorted:
@@ -185,8 +186,12 @@ async def _process_chat(session: AsyncSession, token: str, chat: dict[str, Any])
     if first_seen and len(to_send) > settings.GGSEL_CHAT_FIRST_SEEN_MAX:
         to_send = to_send[-settings.GGSEL_CHAT_FIRST_SEEN_MAX :]
 
+    email = chat.get("email") or chat.get("buyer_email") or "—"
     first_failed: int | None = None
     for mid, m in to_send:
+        text = str(m.get("message") or "")
+        preview = text if len(text) <= 120 else text[:120] + "…"
+        logger.info(f"[GGSEL-CHAT] email={email} msg={mid} текст={preview!r}")
         try:
             ok = await telegram.send_message(fmt.fmt_chat_msg_for_tg(chat, m, chat_id))
         except Exception as e:

@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     GGSEL_CHAT_BOOTSTRAP_SILENT: bool
     # Лимит форварда непрочитанной истории при первой встрече чата (защита от флуда)
     GGSEL_CHAT_FIRST_SEEN_MAX: int
+    # Сколько страниц списка чатов опрашивать за цикл
+    GGSEL_CHAT_MAX_PAGES: int
 
     # База данных (PostgreSQL через asyncpg)
     POSTGRES_HOST: str
